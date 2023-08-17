@@ -116,7 +116,7 @@ async fn main() {
       
       let description = item.description.unwrap_or(String::from(""));
       let description_text = r.replace_all(&description, "").replace("&#39;", "'");
-      let title = item.title.unwrap_or({
+      let title = item.title.clone().unwrap_or({
         let description_parts = description_text.split(" ").collect::<Vec::<&str>>();
         if description_parts.len() > 8 {
           format!("{}...", description_parts[0..8].join(" ").trim())
@@ -124,6 +124,22 @@ async fn main() {
           description_text
         }
       });
+      let mut guid_already_exists = false;
+      let d = &description;
+      let t = &title;
+      for i in 0..new_items.len() {
+        if new_items[i].link == item.link {
+          println!("{:#?} == {:#?}", new_items[i].title, &item.title);
+          guid_already_exists = true;
+          if new_items[i].description.clone().unwrap_or(String::from("")).len() < d.len() {
+            new_items[i].description = Some(String::from(d));
+            new_items[i].title = Some(String::from(t));
+          }
+        }
+      }
+      if guid_already_exists {
+        continue;
+      }
       new_items.push(Item {
         title: Some(title),
         description: Some(description),
