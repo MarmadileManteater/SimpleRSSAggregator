@@ -19,8 +19,6 @@ struct MediaContent {
   medium: String
 }
 
-
-
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 struct Item {
@@ -34,7 +32,9 @@ struct Item {
   create_date: Option<String>,
   update_date: Option<String>,
   #[serde(rename(serialize = "media:content", deserialize = "media-content"))]
-  media_content: Option<Vec<MediaContent>>
+  media_content: Option<Vec<MediaContent>>,
+  #[serde(rename(serialize = "content:encoded", deserialize = "content-encoded"))]
+  content_encoded: Option<String>
 }
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 struct Channel {
@@ -51,7 +51,9 @@ struct Rss {
   #[serde(rename = "@xmlns:webfeeds")]
   webfeeds: Option<String>,
   #[serde(rename = "@xmlns:media")]
-  media: Option<String>
+  media: Option<String>,
+  #[serde(rename = "@xmlns:content")]
+  content: Option<String>
 }
 
 fn clean_mastodon(input: &str) -> String {
@@ -132,7 +134,8 @@ async fn main() {
         pub_date: item.pub_date,
         create_date: item.create_date,
         update_date: item.update_date,
-        media_content: item.media_content
+        media_content: item.media_content,
+        content_encoded: item.content_encoded
       });
     }
   }
@@ -157,10 +160,11 @@ async fn main() {
     },
     version: Some(String::from("2.0")),
     webfeeds: Some(String::from("http://webfeeds.org/rss/1.0")),
-    media: Some(String::from("http://search.yahoo.com/mrss/"))
+    media: Some(String::from("http://search.yahoo.com/mrss/")),
+    content: Some(String::from("http://purl.org/rss/1.0/modules/content/"))
   };
 
   //println!("{:#?}", &new_rss);
   let mut f = File::create("test.xml").unwrap();
-  write!(f, r#"<?xml version="1.0" encoding="UTF-8"?>{}"#,quick_xml::se::to_string(&new_rss).unwrap_or(String::from("Failed")));
+  write!(f, r#"<?xml version="1.0" encoding="UTF-8"?>{}"#,quick_xml::se::to_string(&new_rss).unwrap_or(String::from("Failed")).replace("<content:encoded/>", ""));
 }
