@@ -1,5 +1,6 @@
 
-mod structs;
+pub mod helpers;
+pub mod structs;
 
 use std::path::Path;
 use std::{cmp::Ordering, fs::File};
@@ -154,34 +155,6 @@ fn get_db(path: &str) -> Result<Db, GetDbError> {
   }
 }
 
-use futures_util::StreamExt;
-
-async fn download_image(url: &str) -> Result<String, ()> {
-  let client = reqwest::Client::new();
-  match client.get(url).send().await {
-    Ok(response) => {
-      let file_name = url.split("/").last().unwrap_or("untitled");
-      let mut file = File::create(format!("output/media/{}", file_name)).unwrap();
-      let mut stream = response.bytes_stream();
-      while let Some(chunk) = stream.next().await {
-        match chunk {
-          Ok(chunk) => {
-            file.write(&chunk);
-          },
-          Err(err) => {
-            break;
-          }
-        }
-      }
-      log::info!("Finished downloading file: {file_name}");
-      Ok(file_name.to_string())
-    },
-    Err(error) => {
-      Err(())
-    }
-  }
-}
-
 #[tokio::main]
 async fn main() {
   env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
@@ -266,7 +239,14 @@ async fn main() {
       },
       "output-rss" => {
         let mut f = File::create("test.xml").unwrap();
-        write!(f, r#"<?xml version="1.0" encoding="UTF-8"?>{}"#, db.output_rss().unwrap_or(String::from("Failed")).replace("<content:encoded/>", ""));
+        match write!(f, r#"<?xml version="1.0" encoding="UTF-8"?>{}"#, db.output_rss().expect("Failed outputing feed to RSS").replace("<content:encoded/>", "")) {
+          Ok(()) => {
+            log::info!("✅ Sucessfully wrote RSS file");
+          },
+          Err(error) => {
+            log::error!("❌ {}", error);
+          }
+        }
       },
       _ => {
         
