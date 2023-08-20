@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::{Write};
 use futures_util::StreamExt;
+use urlencoding::decode;
 
 pub enum DownloadImageError {
   Reqwest(reqwest::Error),
@@ -36,7 +37,21 @@ pub async fn download_image(params: DownloadImageOptions) -> Result<String, Down
   match client.get(&url).send().await {
     Ok(response) => {
       let file_name = url.replace("https://", "").replace("http://", "");
-      let mut file = match File::create(format!("{}{}", out_dir, file_name)) {
+      let path_str = format!("{}{}", out_dir, file_name);
+      let path = std::path::Path::new(&path_str);
+      let parent = path.parent();
+      match parent {
+        Some(parent) => {
+          match std::fs::create_dir_all(&parent) {
+            Ok(_) => {},
+            Err(error) => { return Err(DownloadImageError::FileOpen(error)); }
+          }
+        },
+        None => {
+
+        }
+      }
+      let mut file = match File::create(path_str) {
         Ok(file) => file,
         Err(error) => {
           return Err(DownloadImageError::FileOpen(error));

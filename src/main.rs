@@ -8,6 +8,8 @@ use std::io::{Write, Read};
 use regex::Regex;
 use structs::*;
 
+use crate::helpers::{DownloadImageOptions, download_image};
+
 fn clean_mastodon(input: &str) -> String {
   let re = Regex::new(r#"<(/?)([a-zA-Z_][a-zA-Z0-9_]*):([a-zA-Z_][a-zA-Z0-9_]*) *([^>]*)>"#).unwrap();
   format!("{}", re.replace_all(input, r#"<$1$2-$3 $4>"#))
@@ -238,8 +240,94 @@ async fn main() {
         }
       },
       "output-rss" => {
-        let mut f = File::create("test.xml").unwrap();
-        match write!(f, r#"<?xml version="1.0" encoding="UTF-8"?>{}"#, db.output_rss().expect("Failed outputing feed to RSS").replace("<content:encoded/>", "")) {
+        let output_file_name = if args.len() > 2 {
+          args[2].clone()
+        } else {
+          String::from("rss.xml")
+        };
+        let host_name = if args.len() > 3 {
+          Some(args[3].clone())
+        } else {
+          None
+        };
+        let mut f = File::create(output_file_name).unwrap();
+        match host_name {
+          Some(host_name) => {
+            for (_, feed_options) in db.rss.iter_mut() {
+              for item in feed_options.rss.channel.item.iter_mut() {
+                match item.media_content.as_mut() {
+                  Some(media_content) => {
+                    for content_item in media_content.iter_mut() {
+                      match download_image(DownloadImageOptions::Url(content_item.url.clone())).await {
+                        Ok(_) => {
+                          content_item.url = content_item.url.replace("https://", &format!("{}/output/media/", &host_name));
+                        },
+                        Err(error) => {
+                          log::error!("{}", error);
+                        }
+                      }
+                    }
+                  },
+                  None => {}
+                }
+                match item.description.as_mut() {
+                  Some(description) => {
+                    let description_html_frag = scraper::Html::parse_fragment(description);
+                    let images_selector = scraper::Selector::parse("img").unwrap();
+                    let images = description_html_frag.select(&images_selector).collect::<Vec::<_>>();
+                    for image in images {
+                      match image.value().attr("src") {
+                        Some(src) => {
+                          match download_image(DownloadImageOptions::Url(src.to_string())).await {
+                            Ok(_) => {
+                              *description = description.replace(src, &src.replace("https://", &format!("{}/output/media/", &host_name)).replace("%", "%25"));
+                            },
+                            Err(error) => {
+                              log::error!("{}", error);
+                            }
+                          }
+                        },
+                        None => {}
+                      };
+    
+                    }
+                  },
+                  None => {}
+                }
+                match item.content_encoded.as_mut() {
+                  Some(description) => {
+                    let description_html_frag = scraper::Html::parse_fragment(description);
+                    let images_selector = scraper::Selector::parse("img").unwrap();
+                    let images = description_html_frag.select(&images_selector).collect::<Vec::<_>>();
+                    for image in images {
+                      match image.value().attr("src") {
+                        Some(src) => {
+                          match download_image(DownloadImageOptions::Url(src.to_string())).await {
+                            Ok(_) => {
+                              *description = description.replace(src, &src.replace("https://", &format!("{}/output/media/", &host_name)));
+                            },
+                            Err(error) => {
+                              log::error!("{}", error);
+                            }
+                          }
+                        },
+                        None => {}
+                      };
+    
+                    }
+                  },
+                  None => {}
+                }
+              }
+            }
+            
+          },
+          None => {
+
+          }
+        }
+        let rss_output = format!(r#"{}"#, db.output_rss().expect("Failed outputing feed to RSS").replace("<content:encoded/>", ""));
+        match write!(f, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>{}", &rss_output) {
           Ok(()) => {
             log::info!("✅ Sucessfully wrote RSS file");
           },
