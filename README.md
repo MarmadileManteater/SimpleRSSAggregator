@@ -7,8 +7,10 @@ This is a RSS feed aggregator aimed at making it easier to combine a bunch RSS f
 ```bash
 # this stores all of the given feeds in a local JSON file `db.json`
 ./syndication_junction fetch https://marmadilemanteater.dev/blog/rss.xml https://gamemaking.social/@emma.rss https://programming.dev/feeds/u/emma.xml?sort=New https://opengameart.org/users/105608/art.xml https://itch.io/games/newest/by-marmadilemanteater.xml https://pxlmo.com/users/emma.atom
+
 # this outputs an RSS to a feed named `rss.xml`
-./syndication_junction output-rss 
+./syndication_junction output-rss
+
 # this 
 # - outputs an RSS feed to a feed name `whatever-happened-to-rss.xml`
 # - downloads all of the images in the feed to a local file named `media/`
