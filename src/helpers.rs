@@ -51,29 +51,33 @@ pub async fn download_image(params: DownloadImageOptions) -> Result<String, Down
 
         }
       }
-      let mut file = match File::create(path_str) {
-        Ok(file) => file,
-        Err(error) => {
-          return Err(DownloadImageError::FileOpen(error));
-        }
-      };
-      let mut stream = response.bytes_stream();
-      while let Some(chunk) = stream.next().await {
-        match chunk {
-          Ok(chunk) => {
-            match file.write(&chunk) {
-              Ok(_) => {},
-              Err(error) => {
-                return Err(DownloadImageError::FileWrite(error))
+      if !std::path::Path::new(&path_str).exists() {
+        let mut file = match File::create(path_str) {
+          Ok(file) => file,
+          Err(error) => {
+            return Err(DownloadImageError::FileOpen(error));
+          }
+        };
+        let mut stream = response.bytes_stream();
+        while let Some(chunk) = stream.next().await {
+          match chunk {
+            Ok(chunk) => {
+              match file.write(&chunk) {
+                Ok(_) => {},
+                Err(error) => {
+                  return Err(DownloadImageError::FileWrite(error))
+                }
               }
+            },
+            Err(err) => {
+              return Err(DownloadImageError::Reqwest(err));
             }
-          },
-          Err(err) => {
-            return Err(DownloadImageError::Reqwest(err));
           }
         }
+        log::info!("Finished downloading file: {file_name}");
+      } else {
+        log::info!("Skipping downloaded file: {file_name}");
       }
-      log::info!("Finished downloading file: {file_name}");
       Ok(file_name.to_string())
     },
     Err(error) => {

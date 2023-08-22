@@ -3,6 +3,7 @@ pub mod helpers;
 pub mod structs;
 
 use std::path::Path;
+use std::process::{Command, Stdio};
 use std::{cmp::Ordering, fs::File};
 use std::io::{Write, Read};
 use regex::Regex;
@@ -177,7 +178,26 @@ async fn main() {
           let feeds = args[2..args.len()].to_vec();
           for feed in feeds {
             match fetch_feed(&feed).await {
-              Ok(feed_str) => {
+              Ok(mut feed_str) => {
+                if db.rss.contains_key(&feed) {
+                  if db.rss[&feed].manipulate_input != "" {
+                    let cmd = db.rss[&feed].manipulate_input.split(" ").collect::<Vec<_>>();
+                    let mut command = Command::new(cmd[0]);
+                    command.args(&cmd[1..cmd.len()])
+                        .stdin(Stdio::piped())
+                        .stdout(Stdio::piped());
+                    let child = command.spawn().unwrap();
+                    child.stdin.unwrap().write_all(&feed_str.as_bytes()[..]);
+                    let mut s = String::new();
+                    match child.stdout.unwrap().read_to_string(&mut s) {
+                        Err(why) => log::error!("couldn't read wc stdout: {}", why),
+                        Ok(_) => { 
+                          feed_str = format!("{}", s);
+                        }
+                    }
+                  }
+                }
+                
                 let rss = match quick_xml::de::from_str::<Rss>(&clean_mastodon(&feed_str)) {
                   Ok(rss) => {
                     Some(rss)
