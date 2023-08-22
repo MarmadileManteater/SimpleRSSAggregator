@@ -11,15 +11,27 @@ env:
 
 jobs:
   build:
-
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os:
+          - ubuntu-20.04
+          - ubuntu-22.04
+    
+    runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v3
+      with:
+        persist-credentials: false
+
+    - name: Check OpenSSL version
+      run: echo "OPENSSL_VERSION=$(openssl version | grep -oP '\d+\.\d+\.\d+[a-z]*' | head -n 1)" >> $GITHUB_OUTPUT
+      id: check_openssl
+      
     - name: 👷‍♀️ Build
       run: cargo build --verbose
     - name: 📦 Publish artifact
       uses: actions/upload-artifact@v3
       with:
-        name: SimpleRSSAggregator
+        name: SimpleRSSAggregator-openssl${{ steps.check_openssl.outputs.OPENSSL_VERSION }}
         path: target/debug/syndication_junction
