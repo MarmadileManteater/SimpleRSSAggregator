@@ -1,6 +1,6 @@
 # Simple RSS feed aggregator
 
-This is a RSS feed aggregator aimed at making it easier to combine a bunch RSS feeds from different online profiles (mastodon, lemmy, pixelfed, opengameart, itch.io) into a single unified feed. The end goal of this project is to allow for stupidly simple [PESOS](https://indieweb.org/PESOS) (Post Elsewhere Syndicate On (your own) Site) from platforms that support RSS feeds.
+This is a RSS feed aggregator aimed at making it easier to combine a bunch RSS feeds from different online profiles (mastodon, lemmy, pixelfed, opengameart, itch.io) into a single unified feed. The end goal of this project is to allow for stupidly simple [PESOS](https://indieweb.org/PESOS) (Publish Elsewhere, Syndicate (to your) Own Site) from platforms that support RSS feeds.
 
 ### Usage
 
