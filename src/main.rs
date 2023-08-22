@@ -213,7 +213,7 @@ async fn main() {
                 }
               },
               Err(err) => {
-                log::error!("❌ {}", err);
+                log::error!("❌ {feed}: {}", err);
               }
             }
           }
