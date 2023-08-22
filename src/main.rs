@@ -1,27 +1,17 @@
-
 pub mod helpers;
 pub mod structs;
 
-use std::path::Path;
 use std::process::{Command, Stdio};
-use std::{cmp::Ordering, fs::File};
+use std::fs::File;
 use std::io::{Write, Read};
 use regex::Regex;
 use structs::*;
 
 use crate::helpers::{DownloadImageOptions, download_image};
 
-fn clean_mastodon(input: &str) -> String {
+fn clean(input: &str) -> String {
   let re = Regex::new(r#"<(/?)([a-zA-Z_][a-zA-Z0-9_]*):([a-zA-Z_][a-zA-Z0-9_]*) *([^>]*)>"#).unwrap();
   format!("{}", re.replace_all(input, r#"<$1$2-$3 $4>"#))
-}
-
-fn clean_oga(input: &str) -> String {
-  input.replace("<atom:link", "<atom-link")
-}
-
-fn clean_itch(input: &str) -> String {
-  input.replace("& ", "&amp; ").replace("<description>", "<description><![CDATA[").replace("</description>", "]]></description>")
 }
 
 #[derive(Debug)]
@@ -87,33 +77,6 @@ fn save_db(db: &Db, path: &str) -> Result<(),DbCreateError> {
   };
   write!(file, "{}", formatted_db)
     .map_err(|error| DbCreateError::FileWriteError(error))
-}
-
-fn create_db(path: &str) -> Result<(),DbCreateError> {
-  let db = Db::new();
-  save_db(&db, path)
-}
-
-fn create_db_if_none_exists(path: &str, log: bool) -> Result<bool, DbCreateError> {
-  if !Path::new(path).exists() {
-    match create_db(path) {
-      Ok(()) => {
-        if log {
-          log::info!("✅ Sucessfully created db!");
-        }
-        Ok(true)
-      },
-      Err(error) => {
-        log::error!("❌ {}", error);
-        Err(error)
-      }
-    }
-  } else {
-    if log {
-      log::info!("➡ Skipping because db exists!")
-    }
-    Ok(false)
-  }
 }
 
 #[derive(Debug)]
@@ -187,7 +150,12 @@ async fn main() {
                         .stdin(Stdio::piped())
                         .stdout(Stdio::piped());
                     let child = command.spawn().unwrap();
-                    child.stdin.unwrap().write_all(&feed_str.as_bytes()[..]);
+                    match child.stdin.unwrap().write_all(&feed_str.as_bytes()[..]) {
+                      Ok(_) => { },
+                      Err(error) => {
+                        log::error!("Failed to write to modification shell script: {}", error);
+                      }
+                    }
                     let mut s = String::new();
                     match child.stdout.unwrap().read_to_string(&mut s) {
                         Err(why) => log::error!("couldn't read wc stdout: {}", why),
@@ -198,12 +166,12 @@ async fn main() {
                   }
                 }
                 
-                let rss = match quick_xml::de::from_str::<Rss>(&clean_mastodon(&feed_str)) {
+                let rss = match quick_xml::de::from_str::<Rss>(&clean(&feed_str)) {
                   Ok(rss) => {
                     Some(rss)
                   },
                   Err(error) => {
-                    match quick_xml::de::from_str::<Feed>(&clean_mastodon(&feed_str)) {
+                    match quick_xml::de::from_str::<Feed>(&clean(&feed_str)) {
                       Ok(feed) => {
                         Some(feed.into_rss())
                       },
@@ -280,7 +248,7 @@ async fn main() {
                     for content_item in media_content.iter_mut() {
                       match download_image(DownloadImageOptions::Url(content_item.url.clone())).await {
                         Ok(_) => {
-                          content_item.url = content_item.url.replace("https://", &format!("{}/output/media/", &host_name));
+                          content_item.url = content_item.url.replace("https://", &format!("{}/media/", &host_name));
                         },
                         Err(error) => {
                           log::error!("{}", error);
@@ -300,7 +268,7 @@ async fn main() {
                         Some(src) => {
                           match download_image(DownloadImageOptions::Url(src.to_string())).await {
                             Ok(_) => {
-                              *description = description.replace(src, &src.replace("https://", &format!("{}/output/media/", &host_name)).replace("%", "%25"));
+                              *description = description.replace(src, &src.replace("https://", &format!("{}/media/", &host_name)).replace("%", "%25"));
                             },
                             Err(error) => {
                               log::error!("{}", error);
@@ -324,7 +292,7 @@ async fn main() {
                         Some(src) => {
                           match download_image(DownloadImageOptions::Url(src.to_string())).await {
                             Ok(_) => {
-                              *description = description.replace(src, &src.replace("https://", &format!("{}/output/media/", &host_name)));
+                              *description = description.replace(src, &src.replace("https://", &format!("{}/media/", &host_name)));
                             },
                             Err(error) => {
                               log::error!("{}", error);

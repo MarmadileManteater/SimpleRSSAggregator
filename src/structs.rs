@@ -2,10 +2,6 @@ use std::{collections::HashMap, cmp::Ordering};
 
 use chrono::{NaiveDateTime, TimeZone};
 use serde::{Deserialize, Serialize};
-use serde_json::Map;
-use substring::Substring;
-
-use crate::helpers::{download_image, DownloadImageError};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]

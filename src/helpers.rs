@@ -1,7 +1,6 @@
 use std::fs::File;
-use std::io::{Write};
+use std::io::Write;
 use futures_util::StreamExt;
-use urlencoding::decode;
 
 pub enum DownloadImageError {
   Reqwest(reqwest::Error),
@@ -27,7 +26,7 @@ pub enum DownloadImageOptions {
 pub async fn download_image(params: DownloadImageOptions) -> Result<String, DownloadImageError> {
   let (url, out_dir) = match params {
     DownloadImageOptions::Url(url) => {
-      (url, String::from("output/media/"))
+      (url, String::from("media/"))
     }, 
     DownloadImageOptions::UrlAndOutputDir(url, out_dir) => {
       (url, out_dir)
