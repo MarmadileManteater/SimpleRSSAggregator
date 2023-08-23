@@ -15,7 +15,7 @@ This is a RSS feed aggregator aimed at making it easier to combine a bunch RSS f
 # - outputs an RSS feed to a feed name `whatever-happened-to-rss.xml`
 # - downloads all of the images in the feed to a local file named `media/`
 # - replaces all links to images with links that start with `https://maramdilemanteater.dev/feed/media/`
-./syndication_junction output-rss whatever-happened-rss.xml https://maramdilemanteater.dev/feed
+./syndication_junction output-rss whatever-happened-to-rss.xml https://maramdilemanteater.dev/feed
 # if you then take the output `media/` directory and put it in a place where it can be accessed from that URI,
 # you have a complete feed without having to rely on external media files
 ```
