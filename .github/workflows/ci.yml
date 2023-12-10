@@ -16,7 +16,7 @@ jobs:
         os:
           - ubuntu-20.04
           - ubuntu-22.04
-          - windows
+          - win-x64
     
     runs-on: ${{ matrix.os }}
 
@@ -42,7 +42,7 @@ jobs:
         
     - name: 📦 Publish artifact
       uses: actions/upload-artifact@v3
-      if: startsWith(matrix.os, 'windows')
+      if: startsWith(matrix.os, 'win')
       with:
         name: SimpleRSSAggregator-windows
         path: target/debug/syndication_junction.exe
