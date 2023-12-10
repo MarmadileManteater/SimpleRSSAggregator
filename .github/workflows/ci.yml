@@ -16,6 +16,7 @@ jobs:
         os:
           - ubuntu-20.04
           - ubuntu-22.04
+          - windows
     
     runs-on: ${{ matrix.os }}
 
@@ -25,13 +26,23 @@ jobs:
         persist-credentials: false
 
     - name: Check OpenSSL version
+      if: startsWith(matrix.os, 'ubuntu')
       run: echo "OPENSSL_VERSION=$(openssl version | grep -oP '\d+\.\d+\.\d+[a-z]*' | head -n 1)" >> $GITHUB_OUTPUT
       id: check_openssl
       
     - name: 👷‍♀️ Build
       run: cargo build --verbose
+      
     - name: 📦 Publish artifact
       uses: actions/upload-artifact@v3
+      if: startsWith(matrix.os, 'ubuntu')
       with:
         name: SimpleRSSAggregator-openssl${{ steps.check_openssl.outputs.OPENSSL_VERSION }}
         path: target/debug/syndication_junction
+        
+    - name: 📦 Publish artifact
+      uses: actions/upload-artifact@v3
+      if: startsWith(matrix.os, 'windows')
+      with:
+        name: SimpleRSSAggregator-windows
+        path: target/debug/syndication_junction.exe
